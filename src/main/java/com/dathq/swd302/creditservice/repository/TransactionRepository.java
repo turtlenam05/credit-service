@@ -13,4 +13,5 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<CreditTransaction, Long> {
     List<CreditTransaction> findByWallet_UserIdOrderByCreatedAtDesc(Long userId);
+    CreditTransaction findByReferenceId(String referenceId);
 }

@@ -35,6 +35,9 @@ public class CreditTransaction {
     private String referenceType; // e.g., "PAYOS_ORDER", "LISTING", "AI_SESSION"
     private String referenceId;   // ID của đối tượng liên quan từ service khác
 
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status; // PENDING, SUCCESS, FAILED
+
     private String notes;
     private LocalDateTime createdAt = LocalDateTime.now();
 }

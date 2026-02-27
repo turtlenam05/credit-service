@@ -3,6 +3,7 @@ package com.dathq.swd302.creditservice.controller;
 import com.dathq.swd302.creditservice.entity.CreditTransaction;
 import com.dathq.swd302.creditservice.entity.UserWallet;
 import com.dathq.swd302.creditservice.service.CreditService;
+import com.dathq.swd302.creditservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.List;
 public class CreditController {
 
     private final CreditService creditService;
+    private final PaymentService paymentService;
 
     // API nạp tiền thử nghiệm
     @PostMapping("/recharge")
@@ -37,5 +39,10 @@ public class CreditController {
     @GetMapping("/history/{userId}")
     public ResponseEntity<List<CreditTransaction>> getHistory(@PathVariable Long userId) {
         return ResponseEntity.ok(creditService.getTransactionHistory(userId));
+    }
+
+    @GetMapping("/create-payment-url")
+    public String createPayment(@RequestParam Long userId, @RequestParam int amount) throws Exception {
+        return paymentService.createPaymentLink(userId, amount);
     }
 }
