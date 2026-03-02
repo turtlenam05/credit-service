@@ -5,6 +5,7 @@ import com.dathq.swd302.creditservice.entity.TransactionStatus;
 import com.dathq.swd302.creditservice.entity.UserWallet;
 import com.dathq.swd302.creditservice.repository.TransactionRepository;
 import com.dathq.swd302.creditservice.repository.UserWalletRepository;
+import com.dathq.swd302.creditservice.service.IKafkaProducerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ public class WebhookController {
     // 1. Tiêm các Repository vào để làm việc với DB
     private final TransactionRepository transactionRepository;
     private final UserWalletRepository userWalletRepository;
+    private final IKafkaProducerService kafkaProducerService;
 
     @PostMapping("/payos")
     @Transactional // Thêm cái này để đảm bảo nếu lỗi thì DB không bị loạn
@@ -56,8 +58,13 @@ public class WebhookController {
                         userWalletRepository.save(wallet);
                         transactionRepository.save(transaction);
 
+                        kafkaProducerService.publishCreditPurchased(
+                                wallet.getUserId(),
+                                amountToAdd.intValue()
+                        );
+
                         System.out.println("====================================");
-                        System.out.println(">>> ĐÃ CẬNG TIỀN THÀNH CÔNG!");
+                        System.out.println(">>> ĐÃ CỘNG TIỀN THÀNH CÔNG!");
                         System.out.println("Mã đơn: " + orderCodeStr);
                         System.out.println("Số dư mới của User " + wallet.getUserId() + " là: " + wallet.getBalance());
                         System.out.println("====================================");

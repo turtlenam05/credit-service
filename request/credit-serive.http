@@ -1,0 +1,365 @@
+### ==============================================
+### CREDIT SERVICE - FINAL HTTP TEST FILE
+### Base URL: http://localhost:8080
+### X-User-Id: UUID lấy từ JWT sau khi login
+### ==============================================
+
+@baseUrl = http://localhost:8080/api/v1
+@userToken = Bearer YOUR_USER_JWT_TOKEN
+@adminToken = Bearer YOUR_ADMIN_JWT_TOKEN
+@userId = 550e8400-e29b-41d4-a716-446655440000
+@adminId = 660e8400-e29b-41d4-a716-446655440001
+
+### ==============================================
+### 1. WALLET
+### ==============================================
+
+### 1.1 Get Wallet Balance
+GET {{baseUrl}}/credits/balance
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###
+
+### 1.2 Get Transaction History (all)
+GET {{baseUrl}}/credits/transactions?page=1&limit=10
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###
+
+### 1.3 Get Transaction History (filter by type)
+# type: TOP_UP | AI_CHAT | POST_CHARGE | REFUND
+GET {{baseUrl}}/credits/transactions?page=1&limit=10&type=TOP_UP
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###
+
+### ==============================================
+### 2. TOP-UP (PayOS)
+### ==============================================
+
+### 2.1 Initiate Top-Up (50 credits = 50,000 VNĐ)
+POST {{baseUrl}}/credits/topup/initiate
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "amount": 50,
+  "returnUrl": "http://localhost:5173/wallet",
+  "cancelUrl": "http://localhost:5173/wallet"
+}
+
+###
+
+### 2.2 Initiate Top-Up - Min (10 credits)
+POST {{baseUrl}}/credits/topup/initiate
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "amount": 10,
+  "returnUrl": "http://localhost:5173/wallet",
+  "cancelUrl": "http://localhost:5173/wallet"
+}
+
+###
+
+### 2.3 Initiate Top-Up - Max (1000 credits)
+POST {{baseUrl}}/credits/topup/initiate
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "amount": 1000,
+  "returnUrl": "http://localhost:5173/wallet",
+  "cancelUrl": "http://localhost:5173/wallet"
+}
+
+###
+
+### 2.4 [FAIL] Dưới min (9 credits) - Expect 400
+POST {{baseUrl}}/credits/topup/initiate
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "amount": 9,
+  "returnUrl": "http://localhost:5173/wallet",
+  "cancelUrl": "http://localhost:5173/wallet"
+}
+
+###
+
+### 2.5 [FAIL] Vượt max (1001 credits) - Expect 400
+POST {{baseUrl}}/credits/topup/initiate
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "amount": 1001,
+  "returnUrl": "http://localhost:5173/wallet",
+  "cancelUrl": "http://localhost:5173/wallet"
+}
+
+###
+
+### ==============================================
+### 3. WEBHOOK - Giả lập PayOS callback
+### Không cần Auth header
+### ==============================================
+
+### 3.1 Giả lập thanh toán thành công
+### Thay orderCode bằng giá trị thật từ DB sau khi gọi topup/initiate
+POST {{baseUrl}}/webhook/payos
+Content-Type: application/json
+
+{
+  "desc": "success",
+  "data": {
+    "orderCode": "1234567890"
+  }
+}
+
+###
+
+### 3.2 Giả lập thanh toán bị cancel
+POST {{baseUrl}}/webhook/payos
+Content-Type: application/json
+
+{
+  "desc": "cancel",
+  "data": {
+    "orderCode": "1234567890"
+  }
+}
+
+###
+
+### ==============================================
+### 4. AI CHAT
+### ==============================================
+
+### 4.1 Kiểm tra quota (không consume)
+GET {{baseUrl}}/credits/chat/quota
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###
+
+### 4.2 Consume tin nhắn AI (gọi trước mỗi message)
+POST {{baseUrl}}/credits/usage/chat
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "messageId": "msg_12345",
+  "cost": 1
+}
+
+###
+
+### 4.3 [FAIL] Không đủ credit sau 30 tin - Expect 400
+POST {{baseUrl}}/credits/usage/chat
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "messageId": "msg_99999",
+  "cost": 1
+}
+
+###
+
+### ==============================================
+### 5. POST CREDIT (Seller đăng bài)
+### ==============================================
+
+### 5.1 Kiểm tra bài đầu tiên chưa
+GET {{baseUrl}}/credits/posts/is-first
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###
+
+### 5.2 Lock 10 credits khi submit bài (từ bài thứ 2)
+POST {{baseUrl}}/credits/usage/post/lock
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "postId": "post_98765",
+  "amount": 10
+}
+
+###
+
+### 5.3 [FAIL] Lock khi không đủ credit - Expect 400
+POST {{baseUrl}}/credits/usage/post/lock
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "postId": "post_no_credit",
+  "amount": 10
+}
+
+###
+
+### 5.4 Admin: Duyệt bài → trừ credit chính thức
+POST {{baseUrl}}/credits/usage/post/resolve
+Authorization: {{adminToken}}
+X-User-Id: {{adminId}}
+Content-Type: application/json
+
+{
+  "transactionId": "txn_abcdef",
+  "action": "APPROVE"
+}
+
+###
+
+### 5.5 Admin: Từ chối bài → hoàn credit
+POST {{baseUrl}}/credits/usage/post/resolve
+Authorization: {{adminToken}}
+X-User-Id: {{adminId}}
+Content-Type: application/json
+
+{
+  "transactionId": "txn_abcdef",
+  "action": "REJECT"
+}
+
+###
+
+### 5.6 [FAIL] action không hợp lệ - Expect 400
+POST {{baseUrl}}/credits/usage/post/resolve
+Authorization: {{adminToken}}
+X-User-Id: {{adminId}}
+Content-Type: application/json
+
+{
+  "transactionId": "txn_abcdef",
+  "action": "INVALID"
+}
+
+###
+
+### ==============================================
+### 6. REFUND REQUEST
+### ==============================================
+
+### 6.1 User gửi Refund Request (đầy đủ)
+POST {{baseUrl}}/credits/refunds
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "transactionId": 1,
+  "reason": "SYSTEM_ERROR",
+  "description": "Credit bị trừ nhưng tin nhắn AI không được xử lý.",
+  "evidenceUrl": "https://example.com/screenshot.png"
+}
+
+###
+
+### 6.2 User gửi Refund Request (không có evidence - vẫn hợp lệ)
+POST {{baseUrl}}/credits/refunds
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "transactionId": 2,
+  "reason": "WRONG_DEDUCTION",
+  "description": "Credit bị trừ sai, tôi chưa gửi tin nhắn nào.",
+  "evidenceUrl": null
+}
+
+###
+
+### 6.3 [FAIL] Thiếu description - Expect 400
+POST {{baseUrl}}/credits/refunds
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "transactionId": 3,
+  "reason": "OTHER_DISPUTE",
+  "description": "",
+  "evidenceUrl": null
+}
+
+###
+
+### 6.4 [FAIL] Gửi lần 2 cùng transactionId - Expect 400
+POST {{baseUrl}}/credits/refunds
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "transactionId": 1,
+  "reason": "SYSTEM_ERROR",
+  "description": "Gửi lại lần 2 - phải bị chặn.",
+  "evidenceUrl": null
+}
+
+###
+
+### 6.5 User xem lịch sử refund của mình
+GET {{baseUrl}}/credits/refunds
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###
+
+### 6.6 Admin xem tất cả pending refund requests
+GET {{baseUrl}}/credits/refunds/pending
+Authorization: {{adminToken}}
+X-User-Id: {{adminId}}
+
+###
+
+### 6.7 Admin duyệt Refund Request
+### Thay 1 bằng requestId thật
+POST {{baseUrl}}/credits/refunds/1/approve
+Authorization: {{adminToken}}
+X-User-Id: {{adminId}}
+
+###
+
+### 6.8 Admin từ chối Refund Request
+POST {{baseUrl}}/credits/refunds/1/reject
+Authorization: {{adminToken}}
+X-User-Id: {{adminId}}
+Content-Type: application/json
+
+{
+  "reason": "Không đủ bằng chứng hợp lệ"
+}
+
+###
+
+### ==============================================
+### 7. TEST ONLY - Bypass PayOS
+### ==============================================
+
+### 7.1 Recharge thẳng không qua PayOS
+POST {{baseUrl}}/credits/recharge/test?amount=100000
+Authorization: {{userToken}}
+X-User-Id: {{userId}}
+
+###

@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class PaymentService {
+public class PaymentService implements IPaymentService {
 
     private final TransactionRepository transactionRepository;
     private final UserWalletRepository userWalletRepository;
@@ -34,7 +34,10 @@ public class PaymentService {
     @Value("${PAYOS_CHECKSUM_KEY}")
     private String checksumKey;
 
-    public String createPaymentLink(Long userId, int amount) throws Exception {
+    @Value("${app.base-url:http://localhost:8086}")
+    private String baseUrl;
+
+    public String createPaymentLink(UUID userId, int amount) throws Exception {
         int MIN_AMOUNT = 10000;
         int MAX_AMOUNT = 1000000;
 
@@ -46,8 +49,8 @@ public class PaymentService {
         // 0. Chuẩn bị dữ liệu cơ bản
         long orderCode = System.currentTimeMillis() / 1000;
         String description = "Nap tien " + userId;
-        String returnUrl = "http://localhost:8082/swagger-ui/index.html";
-        String cancelUrl = "http://localhost:8082/swagger-ui/index.html";
+        String returnUrl = baseUrl + "/swagger-ui/index.html";
+        String cancelUrl = baseUrl + "/swagger-ui/index.html";
 
         // --- BƯỚC MỚI: LƯU VÀO DATABASE TRƯỚC ---
         // Tìm ví của User

@@ -2,47 +2,103 @@ package com.dathq.swd302.creditservice.controller;
 
 import com.dathq.swd302.creditservice.entity.CreditTransaction;
 import com.dathq.swd302.creditservice.entity.UserWallet;
-import com.dathq.swd302.creditservice.service.CreditService;
-import com.dathq.swd302.creditservice.service.PaymentService;
+import com.dathq.swd302.creditservice.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author matve
  */
 @RestController
-@RequestMapping("/api/credits")
+@RequestMapping("/api/v1/credits")
 @RequiredArgsConstructor
 public class CreditController {
 
-    private final CreditService creditService;
-    private final PaymentService paymentService;
+    private final ICreditService creditService;
+    private final IPaymentService paymentService;
+    private final IAIChatCreditService aiChatCreditService;
 
-    // API nạp tiền thử nghiệm
-    @PostMapping("/recharge")
-    public ResponseEntity<UserWallet> recharge(
-            @RequestParam Long userId,
-            @RequestParam Double amount) {
+    // ==================== WALLET ====================
 
-        UserWallet updatedWallet = creditService.rechargeBalance(userId, amount);
-        return ResponseEntity.ok(updatedWallet);
-    }
-
-    @GetMapping("/balance/{userId}")
-    public ResponseEntity<UserWallet> getBalance(@PathVariable Long userId) {
+    @GetMapping("/balance")
+    public ResponseEntity<UserWallet> getBalance(
+            @RequestHeader("X-User-Id") UUID userId) {
         return ResponseEntity.ok(creditService.getWallet(userId));
     }
 
-    @GetMapping("/history/{userId}")
-    public ResponseEntity<List<CreditTransaction>> getHistory(@PathVariable Long userId) {
+    @GetMapping("/transactions")
+    public ResponseEntity<List<CreditTransaction>> getTransactionHistory(
+            @RequestHeader("X-User-Id") UUID userId) {
         return ResponseEntity.ok(creditService.getTransactionHistory(userId));
     }
 
-    @GetMapping("/create-payment-url")
-    public String createPayment(@RequestParam Long userId, @RequestParam int amount) throws Exception {
-        return paymentService.createPaymentLink(userId, amount);
+    // ==================== TOP-UP ====================
+
+    @PostMapping("/topup/initiate")
+    public ResponseEntity<?> initiateTopUp(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody Map<String, Object> body) {
+        try {
+            int amount = (int) body.get("amount");
+            String checkoutUrl = paymentService.createPaymentLink(userId, amount);
+            return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ==================== AI CHAT ====================
+
+    @GetMapping("/chat/quota")
+    public ResponseEntity<Map<String, Object>> getAIChatQuota(
+            @RequestHeader("X-User-Id") UUID userId) {
+        int used = creditService.getDailyMessageCount(userId);
+        boolean canFree = aiChatCreditService.canSendFreeMessage(userId);
+        UserWallet wallet = creditService.getWallet(userId);
+
+        return ResponseEntity.ok(Map.of(
+                "dailyMessageUsed", used,
+                "freeRemaining", Math.max(0, 30 - used),
+                "canSendFreeMessage", canFree,
+                "creditBalance", wallet.getBalance()
+        ));
+    }
+
+    @PostMapping("/usage/chat")
+    public ResponseEntity<Map<String, Object>> consumeAIMessage(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody Map<String, Object> body) {
+        boolean canFree = aiChatCreditService.canSendFreeMessage(userId);
+        boolean success = aiChatCreditService.consumeMessage(userId);
+        int used = creditService.getDailyMessageCount(userId);
+
+        if (!success) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Không đủ credit. Vui lòng nạp thêm."
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "dailyMessageUsed", used,
+                "freeRemaining", Math.max(0, 30 - used),
+                "isFreeMessage", canFree,
+                "message", canFree ? "Tin nhắn miễn phí" : "Đã trừ 1 credit"
+        ));
+    }
+
+    // ==================== TEST ONLY ====================
+
+    @PostMapping("/recharge/test")
+    public ResponseEntity<UserWallet> rechargeTest(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestParam Double amount) {
+        return ResponseEntity.ok(creditService.rechargeBalance(userId, amount));
     }
 }

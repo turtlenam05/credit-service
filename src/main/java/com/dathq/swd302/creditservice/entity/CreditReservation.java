@@ -1,6 +1,8 @@
 package com.dathq.swd302.creditservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -17,12 +19,23 @@ public class CreditReservation {
     private Long reservationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "wallet_id")
+    @JoinColumn(name = "wallet_id", nullable = false)
     private UserWallet wallet;
 
-    private String listingId;
-    private BigDecimal amount = new BigDecimal("10");
+    @Column(nullable = false, unique = true)
+    private String referenceId;
 
-    private String status; // PENDING, CONSUMED (trừ hẳn), RELEASED (hoàn lại)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = false)
+    private String listingId;
+
+    @Column(nullable = false)
+    private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ReservationStatus status;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 }
