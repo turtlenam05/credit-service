@@ -12,4 +12,5 @@ public interface CreditReservationRepository  extends CrudRepository<CreditReser
     Optional<CreditReservation> findByReferenceIdAndStatus(String referenceId, ReservationStatus status);
 
 
+    boolean existsByReferenceId(String attr0);
 }

@@ -1,5 +1,6 @@
 package com.dathq.swd302.creditservice.service;
 
+import com.dathq.swd302.creditservice.dto.CreditLockResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -57,13 +58,13 @@ public class ListingEventConsumer {
 
             boolean isFirstPost = postCreditService.isFirstPost(userId);
             if (!isFirstPost) {
-                boolean locked = postCreditService.lockCreditForPost(userId, postReferenceId);
-                if (!locked) {
-                    log.warn(">>> Insufficient credits for userId: {} when submitting post: {}", userId, postReferenceId);
-                    // TODO: publish event back to listing service to notify insufficient credit
-                } else {
-                    log.info(">>> Locked 10 credits for userId: {}, postId: {}", userId, postReferenceId);
-                }
+                CreditLockResult locked = postCreditService.lockCreditForPost(userId, postReferenceId);
+//                if (!locked) {
+//                    log.warn(">>> Insufficient credits for userId: {} when submitting post: {}", userId, postReferenceId);
+//                    // TODO: publish event back to listing service to notify insufficient credit
+//                } else {
+//                    log.info(">>> Locked 10 credits for userId: {}, postId: {}", userId, postReferenceId);
+//                }
             }
         } catch (Exception e) {
             log.error("Error handling listing.post.submitted: {}", e.getMessage(), e);

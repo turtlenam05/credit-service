@@ -1,6 +1,7 @@
 package com.dathq.swd302.creditservice.service;
 
 
+import com.dathq.swd302.creditservice.dto.CreditLockResult;
 import com.dathq.swd302.creditservice.entity.TransactionType;
 import com.dathq.swd302.creditservice.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class PostCreditServiceImpl implements  IPostCreditService  {
     }
 
     @Override
-    public boolean lockCreditForPost(UUID userId, String postReferenceId) {
+    public CreditLockResult lockCreditForPost(UUID userId, String postReferenceId) {
         return creditService.lockCredit(userId, POST_CREDIT_COST, postReferenceId);
 
     }

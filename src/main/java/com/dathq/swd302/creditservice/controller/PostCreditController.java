@@ -1,6 +1,8 @@
 package com.dathq.swd302.creditservice.controller;
 
 
+import com.dathq.swd302.creditservice.dto.CreditLockResult;
+import com.dathq.swd302.creditservice.dto.LockCreditRequest;
 import com.dathq.swd302.creditservice.service.IPostCreditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,21 +32,23 @@ public class PostCreditController {
     @PostMapping("/usage/post/lock")
     public ResponseEntity<Map<String, Object>> lockCreditForPost(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestBody Map<String, Object> body) {
-        String postId = body.get("postId").toString();
-        boolean locked = postCreditService.lockCreditForPost(userId, postId);
+            @RequestBody LockCreditRequest request) {
+        CreditLockResult result = postCreditService.lockCreditForPost(userId, request.postId());
 
-        if (locked) {
+        if (result.isSuccess()) {
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Đã lock 10 credit thành công. Bài đăng đang chờ duyệt."
-            ));
-        } else {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Không đủ credit. Vui lòng nạp thêm để đăng bài."
+                    "isFreePost", result.isFreePost(),
+                    "creditCost", result.getCreditCost(),
+                    "referenceId", result.getReferenceId(), // caller stores this
+                    "message", result.getMessage()
             ));
         }
+
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", result.getMessage()
+        ));
     }
 
     @PostMapping("/usage/post/resolve")

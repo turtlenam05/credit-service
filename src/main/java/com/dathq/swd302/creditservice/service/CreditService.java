@@ -1,5 +1,6 @@
 package com.dathq.swd302.creditservice.service;
 
+import com.dathq.swd302.creditservice.dto.CreditLockResult;
 import com.dathq.swd302.creditservice.entity.*;
 import com.dathq.swd302.creditservice.repository.CreditReservationRepository;
 import com.dathq.swd302.creditservice.repository.TransactionRepository;
@@ -115,12 +116,48 @@ public class CreditService implements ICreditService {
 
     @Override
     @Transactional
-    public boolean lockCredit(UUID userId, int credits, String referenceId) {
+    public CreditLockResult lockCredit(UUID userId, int credits, String referenceId) {
+
+        if (reservationRepository.existsByReferenceId(referenceId)) {
+            throw new IllegalStateException("Post already has a reservation: " + referenceId);
+        }
         UserWallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Wallet không tồn tại!"));
 
+        boolean isFirstPost = !transactionRepository.existsByWallet_UserIdAndType(userId, TransactionType.POST_CHARGE)
+                && !transactionRepository.existsByWallet_UserIdAndReferenceType(userId, "FIRST_POST");
+
+
+        if (isFirstPost) {
+            // Record the free post so next time isFirstPost = false
+            CreditTransaction freeTransaction = CreditTransaction.builder()
+                    .wallet(wallet)
+                    .amount(BigDecimal.ZERO)
+                    .type(TransactionType.POST_CHARGE)
+                    .referenceType("FIRST_POST")
+                    .referenceId(referenceId)
+                    .status(TransactionStatus.SUCCESS)
+                    .notes("Bài đăng đầu tiên miễn phí")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            transactionRepository.save(freeTransaction);
+
+            // Still create a reservation with 0 amount so resolve flow works uniformly
+            CreditReservation reservation = CreditReservation.builder()
+                    .wallet(wallet)
+                    .amount(BigDecimal.ZERO)
+                    .referenceId(referenceId)
+                    .status(ReservationStatus.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            reservationRepository.save(reservation);
+
+            kafkaProducerService.publishCreditLocked(userId, 0, referenceId);
+            return CreditLockResult.free(referenceId);
+        }
+
         if (wallet.getBalance().compareTo(BigDecimal.valueOf(credits)) < 0) {
-            return false;
+            return CreditLockResult.insufficient();
         }
 
         wallet.setBalance(wallet.getBalance().subtract(BigDecimal.valueOf(credits)));
@@ -139,7 +176,7 @@ public class CreditService implements ICreditService {
 
         kafkaProducerService.publishCreditLocked(userId, credits, referenceId);
 
-        return true;
+        return CreditLockResult.paid(referenceId, credits);
     }
 
     @Override
