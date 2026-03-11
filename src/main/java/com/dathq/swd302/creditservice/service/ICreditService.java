@@ -17,4 +17,5 @@ public interface ICreditService {
     boolean unlockAndRefundCredit(UUID userId, String referenceId);
     int getDailyMessageCount(UUID userId);
     void incrementDailyMessageCount(UUID userId);
+    UserWallet createWallet(UUID userId);
 }

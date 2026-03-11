@@ -2,8 +2,11 @@ package com.dathq.swd302.creditservice.controller;
 
 import com.dathq.swd302.creditservice.entity.CreditTransaction;
 import com.dathq.swd302.creditservice.entity.UserWallet;
+import com.dathq.swd302.creditservice.security.JwtClaims;
+import com.dathq.swd302.creditservice.security.JwtUser;
 import com.dathq.swd302.creditservice.service.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,39 +30,45 @@ public class CreditController {
 
     @GetMapping("/balance")
     public ResponseEntity<UserWallet> getBalance(
-            @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(creditService.getWallet(userId));
+            @JwtUser JwtClaims claims) {
+        return ResponseEntity.ok(creditService.getWallet(claims.getUserId()));
     }
 
     @GetMapping("/transactions")
     public ResponseEntity<List<CreditTransaction>> getTransactionHistory(
-            @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(creditService.getTransactionHistory(userId));
+            @JwtUser JwtClaims claims) {
+        return ResponseEntity.ok(creditService.getTransactionHistory(claims.getUserId()));
     }
 
     // ==================== TOP-UP ====================
 
     @PostMapping("/topup/initiate")
     public ResponseEntity<?> initiateTopUp(
-            @RequestHeader("X-User-Id") UUID userId,
+            @JwtUser JwtClaims claims,
             @RequestBody Map<String, Object> body) {
         try {
             int amount = (int) body.get("amount");
-            String checkoutUrl = paymentService.createPaymentLink(userId, amount);
+            String checkoutUrl = paymentService.createPaymentLink(claims.getUserId(), amount);
             return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
+    @PostMapping("/wallet")
+    public ResponseEntity<UserWallet> createWallet(@JwtUser JwtClaims claims) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(creditService.createWallet(claims.getUserId()));
+    }
+
     // ==================== AI CHAT ====================
 
     @GetMapping("/chat/quota")
     public ResponseEntity<Map<String, Object>> getAIChatQuota(
-            @RequestHeader("X-User-Id") UUID userId) {
-        int used = creditService.getDailyMessageCount(userId);
-        boolean canFree = aiChatCreditService.canSendFreeMessage(userId);
-        UserWallet wallet = creditService.getWallet(userId);
+            @JwtUser JwtClaims claims) {
+        int used = creditService.getDailyMessageCount(claims.getUserId());
+        boolean canFree = aiChatCreditService.canSendFreeMessage(claims.getUserId());
+        UserWallet wallet = creditService.getWallet(claims.getUserId());
 
         return ResponseEntity.ok(Map.of(
                 "dailyMessageUsed", used,
@@ -71,11 +80,11 @@ public class CreditController {
 
     @PostMapping("/usage/chat")
     public ResponseEntity<Map<String, Object>> consumeAIMessage(
-            @RequestHeader("X-User-Id") UUID userId,
+            @JwtUser JwtClaims claims,
             @RequestBody Map<String, Object> body) {
-        boolean canFree = aiChatCreditService.canSendFreeMessage(userId);
-        boolean success = aiChatCreditService.consumeMessage(userId);
-        int used = creditService.getDailyMessageCount(userId);
+        boolean canFree = aiChatCreditService.canSendFreeMessage(claims.getUserId());
+        boolean success = aiChatCreditService.consumeMessage(claims.getUserId());
+        int used = creditService.getDailyMessageCount(claims.getUserId());
 
         if (!success) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -97,8 +106,8 @@ public class CreditController {
 
     @PostMapping("/recharge/test")
     public ResponseEntity<UserWallet> rechargeTest(
-            @RequestHeader("X-User-Id") UUID userId,
+            @JwtUser JwtClaims claims,
             @RequestParam Double amount) {
-        return ResponseEntity.ok(creditService.rechargeBalance(userId, amount));
+        return ResponseEntity.ok(creditService.rechargeBalance(claims.getUserId(), amount));
     }
 }

@@ -3,6 +3,8 @@ package com.dathq.swd302.creditservice.controller;
 
 import com.dathq.swd302.creditservice.dto.CreditLockResult;
 import com.dathq.swd302.creditservice.dto.LockCreditRequest;
+import com.dathq.swd302.creditservice.security.JwtClaims;
+import com.dathq.swd302.creditservice.security.JwtUser;
 import com.dathq.swd302.creditservice.service.IPostCreditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +22,8 @@ public class PostCreditController {
 
     @GetMapping("/posts/is-first")
     public ResponseEntity<Map<String, Object>> checkFirstPost(
-            @RequestHeader("X-User-Id") UUID userId) {
-        boolean isFirst = postCreditService.isFirstPost(userId);
+            @JwtUser JwtClaims claims) {
+        boolean isFirst = postCreditService.isFirstPost(claims.getUserId());
         return ResponseEntity.ok(Map.of(
                 "isFirstPost", isFirst,
                 "creditCost", isFirst ? 0 : 10,
@@ -31,9 +33,9 @@ public class PostCreditController {
 
     @PostMapping("/usage/post/lock")
     public ResponseEntity<Map<String, Object>> lockCreditForPost(
-            @RequestHeader("X-User-Id") UUID userId,
+            @JwtUser JwtClaims claims,
             @RequestBody LockCreditRequest request) {
-        CreditLockResult result = postCreditService.lockCreditForPost(userId, request.postId());
+        CreditLockResult result = postCreditService.lockCreditForPost(claims.getUserId(), request.postId(), request.type());
 
         if (result.isSuccess()) {
             return ResponseEntity.ok(Map.of(
@@ -53,7 +55,7 @@ public class PostCreditController {
 
     @PostMapping("/usage/post/resolve")
     public ResponseEntity<Map<String, Object>> resolvePost(
-            @RequestHeader("X-User-Id") UUID userId,
+            @JwtUser JwtClaims claims,
             @RequestBody Map<String, Object> body) {
         String transactionId = body.get("transactionId").toString();
         String action = body.get("action").toString();
@@ -63,10 +65,10 @@ public class PostCreditController {
             String message;
 
             if ("APPROVE".equalsIgnoreCase(action)) {
-                result = postCreditService.confirmPostApproved(userId, transactionId);
+                result = postCreditService.confirmPostApproved(claims.getUserId(), transactionId);
                 message = "Đã trừ 10 credit chính thức. Bài đăng đã được publish.";
             } else if ("REJECT".equalsIgnoreCase(action)) {
-                result = postCreditService.confirmPostRejected(userId, transactionId);
+                result = postCreditService.confirmPostRejected(claims.getUserId(), transactionId);
                 message = "Đã hoàn 10 credit. Bài đăng bị từ chối.";
             } else {
                 return ResponseEntity.badRequest().body(Map.of(

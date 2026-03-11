@@ -58,7 +58,7 @@ public class ListingEventConsumer {
 
             boolean isFirstPost = postCreditService.isFirstPost(userId);
             if (!isFirstPost) {
-                CreditLockResult locked = postCreditService.lockCreditForPost(userId, postReferenceId);
+                CreditLockResult locked = postCreditService.lockCreditForPost(userId, postReferenceId, 1);
 //                if (!locked) {
 //                    log.warn(">>> Insufficient credits for userId: {} when submitting post: {}", userId, postReferenceId);
 //                    // TODO: publish event back to listing service to notify insufficient credit

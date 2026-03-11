@@ -195,6 +195,20 @@ public class CreditService implements ICreditService {
     }
 
     @Override
+    public UserWallet createWallet(UUID userId) {
+        return walletRepository.findByUserId(userId)
+                .orElseGet(() -> walletRepository.save(
+                        UserWallet.builder()
+                                .userId(userId)
+                                .balance(BigDecimal.ZERO)
+                                .reservedBalance(BigDecimal.ZERO)
+                                .totalSpent(BigDecimal.ZERO)
+                                .status("ACTIVE")
+                                .build()
+                ));
+    }
+
+    @Override
     @Transactional
     public boolean unlockAndDeductCredit(UUID userId, String referenceId) {
         CreditReservation reservation = reservationRepository.findByReferenceIdAndStatus(referenceId, ReservationStatus.PENDING)

@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public interface IPostCreditService {
     boolean isFirstPost(UUID userId);
-    CreditLockResult lockCreditForPost(UUID userId, String postReferenceId);
+    CreditLockResult lockCreditForPost(UUID userId, String postReferenceId, int type);
     boolean confirmPostApproved(UUID userId, String postReferenceId);
     boolean confirmPostRejected(UUID userId, String postReferenceId);
 }

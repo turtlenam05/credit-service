@@ -3,6 +3,8 @@ package com.dathq.swd302.creditservice.controller;
 
 import com.dathq.swd302.creditservice.dto.RefundRequestDTO;
 import com.dathq.swd302.creditservice.entity.RefundRequest;
+import com.dathq.swd302.creditservice.security.JwtClaims;
+import com.dathq.swd302.creditservice.security.JwtUser;
 import com.dathq.swd302.creditservice.service.IRefundRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +23,10 @@ public class RefundRequestController {
 
     @PostMapping
     public ResponseEntity<?> submitRefund(
-            @RequestHeader("X-User-Id") UUID userId,
+            @JwtUser JwtClaims claims,
             @RequestBody RefundRequestDTO dto) {
         try {
-            RefundRequest request = refundRequestService.submitRefundRequest(userId, dto);
+            RefundRequest request = refundRequestService.submitRefundRequest(claims.getUserId(), dto);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "requestId", request.getId(),
@@ -37,22 +39,22 @@ public class RefundRequestController {
 
     @GetMapping
     public ResponseEntity<List<RefundRequest>> getUserRefunds(
-            @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(refundRequestService.getRefundRequestsByUser(userId));
+            @JwtUser JwtClaims claims) {
+        return ResponseEntity.ok(refundRequestService.getRefundRequestsByUser(claims.getUserId()));
     }
 
     @GetMapping("/pending")
     public ResponseEntity<List<RefundRequest>> getPendingRequests(
-            @RequestHeader("X-User-Id") UUID adminId) {
+            @JwtUser JwtClaims claims) {
         return ResponseEntity.ok(refundRequestService.getAllPendingRequests());
     }
 
     @PostMapping("/{requestId}/approve")
     public ResponseEntity<?> approveRefund(
-            @RequestHeader("X-User-Id") UUID adminId,
+            @JwtUser JwtClaims claims,
             @PathVariable Long requestId) {
         try {
-            RefundRequest result = refundRequestService.approveRefundRequest(requestId, adminId);
+            RefundRequest result = refundRequestService.approveRefundRequest(requestId, claims.getUserId());
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "status", result.getStatus(),
@@ -65,12 +67,12 @@ public class RefundRequestController {
 
     @PostMapping("/{requestId}/reject")
     public ResponseEntity<?> rejectRefund(
-            @RequestHeader("X-User-Id") UUID adminId,
+            @JwtUser JwtClaims claims,
             @PathVariable Long requestId,
             @RequestBody Map<String, String> body) {
         try {
             String reason = body.get("reason");
-            RefundRequest result = refundRequestService.rejectRefundRequest(requestId, adminId, reason);
+            RefundRequest result = refundRequestService.rejectRefundRequest(requestId, claims.getUserId(), reason);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "status", result.getStatus(),
