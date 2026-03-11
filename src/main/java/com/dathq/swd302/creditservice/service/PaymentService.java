@@ -49,6 +49,13 @@ public class PaymentService implements IPaymentService {
     @Value("${app.base-url:http://localhost:8086}")
     private String baseUrl;
 
+
+    @Value("$https://api.estate.maik.io.vn/credit/payment/success")
+    private String returnUrl;
+
+    @Value("https://api.estate.maik.io.vn/credit/payment/cancel")
+    private String cancelUrl;
+
     @Override
     public String createPaymentLink(UUID userId, int amount) {
         validateAmount(amount);
@@ -58,8 +65,6 @@ public class PaymentService implements IPaymentService {
 
         long orderCode = System.currentTimeMillis() / 1000;
         String description = "Nap " + userId.toString().substring(0, 8);
-        String returnUrl  = baseUrl + "/swagger-ui/index.html";
-        String cancelUrl  = baseUrl + "/swagger-ui/index.html";
 
         CreditTransaction transaction = createPendingTransaction(wallet, amount, orderCode);
 
