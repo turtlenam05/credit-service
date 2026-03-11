@@ -46,7 +46,7 @@ public class CreditService implements ICreditService {
                 });
 
         // 3. Cập nhật số dư
-        wallet.setBalance(wallet.getBalance().add(creditsBigDecimal));
+        wallet.setBalance(wallet.getBalance().add(BigDecimal.valueOf(amountVnd)));
         wallet.setUpdatedAt(LocalDateTime.now());
 
         // 4. Tạo lịch sử giao dịch bằng CreditTransaction

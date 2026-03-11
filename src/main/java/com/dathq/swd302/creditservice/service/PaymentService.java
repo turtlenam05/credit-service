@@ -48,7 +48,7 @@ public class PaymentService implements IPaymentService {
 
         // 0. Chuẩn bị dữ liệu cơ bản
         long orderCode = System.currentTimeMillis() / 1000;
-        String description = "Nap tien " + userId;
+        String description = "Nap " + userId.toString().substring(0,8);
         String returnUrl = baseUrl + "/swagger-ui/index.html";
         String cancelUrl = baseUrl + "/swagger-ui/index.html";
 
@@ -103,6 +103,7 @@ public class PaymentService implements IPaymentService {
                     "https://api-merchant.payos.vn/v2/payment-requests", entity, Map.class);
 
             Map<String, Object> resBody = response.getBody();
+            System.out.println("PayOS response: " + resBody);
             Map<String, Object> resData = (Map<String, Object>) resBody.get("data");
 
             // Trả về link thanh toán cho Controller

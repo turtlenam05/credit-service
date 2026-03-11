@@ -16,7 +16,7 @@ public class PostCreditServiceImpl implements  IPostCreditService  {
     private final ICreditService creditService;
     private final TransactionRepository transactionRepository;
 
-    private static final int POST_CREDIT_COST = 10;
+    private static final int POST_COST = 10000;
 
     @Override
     public boolean isFirstPost(UUID userId) {
@@ -28,7 +28,7 @@ public class PostCreditServiceImpl implements  IPostCreditService  {
 
     @Override
     public CreditLockResult lockCreditForPost(UUID userId, String postReferenceId) {
-        return creditService.lockCredit(userId, POST_CREDIT_COST, postReferenceId);
+        return creditService.lockCredit(userId, POST_COST, postReferenceId);
 
     }
 

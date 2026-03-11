@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.*;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -39,6 +41,8 @@ public class CreditTransaction {
     private TransactionStatus status; // PENDING, SUCCESS, FAILED
 
     private String notes;
+
+    @CreationTimestamp // Thêm annotation này để tự động set thời gian tạo khi bản ghi được lưu vào DB
     private LocalDateTime createdAt = LocalDateTime.now();
 }
 
