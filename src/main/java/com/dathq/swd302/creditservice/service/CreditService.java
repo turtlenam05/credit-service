@@ -147,6 +147,7 @@ public class CreditService implements ICreditService {
                     .wallet(wallet)
                     .amount(BigDecimal.ZERO)
                     .referenceId(referenceId)
+                    .listingId(referenceId)
                     .status(ReservationStatus.PENDING)
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -159,7 +160,7 @@ public class CreditService implements ICreditService {
         if (wallet.getBalance().compareTo(BigDecimal.valueOf(credits)) < 0) {
             return CreditLockResult.insufficient();
         }
-
+        BigDecimal negativeAmount = BigDecimal.valueOf(credits).negate();
         wallet.setBalance(wallet.getBalance().subtract(BigDecimal.valueOf(credits)));
         wallet.setUpdatedAt(LocalDateTime.now());
 
@@ -167,11 +168,25 @@ public class CreditService implements ICreditService {
                 .wallet(wallet)
                 .amount(BigDecimal.valueOf(credits))
                 .referenceId(referenceId)
+                .listingId(referenceId)
                 .status(ReservationStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         reservationRepository.save(reservation);
+
+        // ✅ Missing transaction record — now added with negative amount
+        CreditTransaction transaction = CreditTransaction.builder()
+                .wallet(wallet)
+                .amount(negativeAmount) // -credits to indicate deduction
+                .type(TransactionType.POST_CHARGE)
+                .referenceType("POST_LOCK")
+                .referenceId(referenceId)
+                .status(TransactionStatus.SUCCESS)
+                .notes("Khóa credit cho bài đăng: " + referenceId)
+                .createdAt(LocalDateTime.now())
+                .build();
+
         walletRepository.save(wallet);
 
         kafkaProducerService.publishCreditLocked(userId, credits, referenceId);

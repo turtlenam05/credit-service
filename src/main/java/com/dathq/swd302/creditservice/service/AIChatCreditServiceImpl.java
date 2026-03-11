@@ -28,7 +28,7 @@ public class AIChatCreditServiceImpl implements IAIChatCreditService{
         }
 
         // Vượt 30 tin → trừ 1 credit
-        boolean deducted = creditService.deductCredit(userId, 1);
+        boolean deducted = creditService.deductCredit(userId, 1000);
         if (deducted) {
             creditService.incrementDailyMessageCount(userId);
         }
