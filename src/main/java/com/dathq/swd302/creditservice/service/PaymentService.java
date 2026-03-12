@@ -46,7 +46,7 @@ public class PaymentService implements IPaymentService {
     @Value("${PAYOS_CHECKSUM_KEY}")
     private String checksumKey;
 
-    @Value("${app.base-url:http://localhost:8086}")
+    @Value("${app.base-url:http://estate.maik.io.vn/credit}")
     private String baseUrl;
 
 
