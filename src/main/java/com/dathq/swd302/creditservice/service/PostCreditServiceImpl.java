@@ -28,10 +28,11 @@ public class PostCreditServiceImpl implements  IPostCreditService  {
 
     @Override
     public CreditLockResult lockCreditForPost(UUID userId, String postReferenceId, int type) {
+        int postCost = POST_COST;
         if(type == 2){
-            POST_COST += 50000;
+            postCost = POST_COST + 50000;
         }
-        return creditService.lockCredit(userId, POST_COST, postReferenceId);
+        return creditService.lockCredit(userId, postCost, postReferenceId);
 
     }
 
