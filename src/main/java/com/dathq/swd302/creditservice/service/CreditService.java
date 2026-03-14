@@ -65,7 +65,7 @@ public class CreditService implements ICreditService {
     @Override
     public UserWallet getWallet(UUID userId) {
         return walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new WalletNotFoundException(userId));
+                .orElseGet(() -> createWallet(userId));
     }
 
     @Override
