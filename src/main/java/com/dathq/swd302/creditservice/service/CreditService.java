@@ -69,6 +69,7 @@ public class CreditService implements ICreditService {
     }
 
     @Override
+    @Transactional
     public UserWallet createWallet(UUID userId) {
         return walletRepository.findByUserId(userId)
                 .orElseGet(() -> walletRepository.save(
