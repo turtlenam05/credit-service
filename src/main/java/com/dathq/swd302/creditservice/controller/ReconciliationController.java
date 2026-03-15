@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/reconciliation")
+@RequestMapping("/api/v1/reconciliation")
 @RequiredArgsConstructor
 public class ReconciliationController {
     private final IReconciliationService reconciliationService;
