@@ -4,8 +4,11 @@ package com.dathq.swd302.creditservice.controller;
 import com.dathq.swd302.creditservice.dto.reconciliation.*;
 import com.dathq.swd302.creditservice.entity.MonthlyReconciliation;
 import com.dathq.swd302.creditservice.entity.PlatformExpense;
+import com.dathq.swd302.creditservice.security.JwtClaims;
+import com.dathq.swd302.creditservice.security.JwtUser;
 import com.dathq.swd302.creditservice.service.IReconciliationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReconciliationController {
     private final IReconciliationService reconciliationService;
+    private final String ROLE_ADMIN = "ADMIN";
 
     @GetMapping("/{month}/{year}")
     public ResponseEntity<ReconciliationSummaryDTO> getSummary(
@@ -30,8 +34,13 @@ public class ReconciliationController {
             @PathVariable int month,
             @PathVariable int year,
             @RequestBody ReconcileRequestDTO request,
-            @RequestHeader("X-User-Id") UUID adminId) {
-        return ResponseEntity.ok(reconciliationService.reconcile(month, year, request, adminId));
+            @JwtUser JwtClaims claims) {
+
+        if (!ROLE_ADMIN.equals(claims.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(reconciliationService.reconcile(month, year, request, claims.getUserId()));
     }
 
     @GetMapping("/history")
@@ -43,7 +52,13 @@ public class ReconciliationController {
     public ResponseEntity<AuditSummaryDTO> submitGatewayRecords(
             @PathVariable int month,
             @PathVariable int year,
-            @RequestBody List<GatewayRecordDTO> records) {
+            @RequestBody List<GatewayRecordDTO> records,
+            @JwtUser JwtClaims claims) {
+
+        if (!ROLE_ADMIN.equals(claims.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         return ResponseEntity.ok(reconciliationService.submitGatewayRecords(month, year, records));
     }
 
@@ -57,17 +72,28 @@ public class ReconciliationController {
     @PostMapping("/adjust")
     public ResponseEntity<Void> adjust(
             @RequestBody ManualAdjustmentDTO dto,
-            @RequestHeader("X-User-Id") UUID adminId) {
-        reconciliationService.applyManualAdjustment(dto, adminId);
+            @JwtUser JwtClaims claims) {
+
+        if (!ROLE_ADMIN.equals(claims.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        reconciliationService.applyManualAdjustment(dto, claims.getUserId());
         return ResponseEntity.ok().build();
     }
+
 
     @PostMapping("/{id}/resolve")
     public ResponseEntity<MonthlyReconciliation> resolve(
             @PathVariable Long id,
             @RequestBody ResolveDiscrepancyDTO dto,
-            @RequestHeader("X-User-Id") UUID adminId) {
-        return ResponseEntity.ok(reconciliationService.resolveDiscrepancy(id, dto, adminId));
+            @JwtUser JwtClaims claims) {
+
+        if (!ROLE_ADMIN.equals(claims.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(reconciliationService.resolveDiscrepancy(id, dto, claims.getUserId()));
     }
 
     @GetMapping("/{id}/report")
@@ -78,8 +104,13 @@ public class ReconciliationController {
     @PostMapping("/expenses")
     public ResponseEntity<PlatformExpense> addExpense(
             @RequestBody ExpenseCreateDTO dto,
-            @RequestHeader("X-User-Id") UUID adminId) {
-        return ResponseEntity.ok(reconciliationService.addExpense(dto, adminId));
+            @JwtUser JwtClaims claims) {
+
+        if (!ROLE_ADMIN.equals(claims.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(reconciliationService.addExpense(dto, claims.getUserId()));
     }
 
     @GetMapping("/{month}/{year}/expenses")

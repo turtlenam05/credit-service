@@ -9,14 +9,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+import static com.dathq.swd302.creditservice.entity.CreditSetting.SettingKey.POST_COST_BASIC;
+import static com.dathq.swd302.creditservice.entity.CreditSetting.SettingKey.POST_COST_PREMIUM_ADD;
+
 @Service
 @RequiredArgsConstructor
 public class PostCreditServiceImpl implements  IPostCreditService  {
 
     private final ICreditService creditService;
     private final TransactionRepository transactionRepository;
-
-    private static  int POST_COST = 10000;
+    private final ICreditSettingService settingService;
 
     @Override
     public boolean isFirstPost(UUID userId) {
@@ -28,11 +30,11 @@ public class PostCreditServiceImpl implements  IPostCreditService  {
 
     @Override
     public CreditLockResult lockCreditForPost(UUID userId, String postReferenceId, int type) {
-        int postCost = POST_COST;
+        int cost = settingService.getValue(POST_COST_BASIC);
         if(type == 2){
-            postCost = POST_COST + 50000;
+            cost += settingService.getValue(POST_COST_PREMIUM_ADD);
         }
-        return creditService.lockCredit(userId, postCost, postReferenceId);
+        return creditService.lockCredit(userId, cost, postReferenceId);
 
     }
 

@@ -140,8 +140,7 @@ public class CreditService implements ICreditService {
             throw new ReservationAlreadyExistsException(referenceId);
         }
 
-        UserWallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new WalletNotFoundException(userId));
+        UserWallet wallet = getWallet(userId);
 
         boolean isFirstPost = !transactionRepository.existsByWallet_UserIdAndType(userId, TransactionType.POST_CHARGE)
                 && !transactionRepository.existsByWallet_UserIdAndReferenceType(userId, "FIRST_POST");
