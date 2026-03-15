@@ -46,7 +46,7 @@ public class CreditSettingController {
             @RequestBody @Valid UpdateCreditSettingRequest request,
             @JwtUser JwtClaims claims) {
 
-        if (!"ADMIN".equals(claims.getRole())) {
+        if (!"ADMIN".equals(claims.getRole().toUpperCase())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -60,7 +60,7 @@ public class CreditSettingController {
             @RequestBody @Valid UpdateAllSettingsRequest request,
             @JwtUser JwtClaims claims) {
 
-        if (!"ADMIN".equals(claims.getRole())) {
+        if (!"ADMIN".equals(claims.getRole().toUpperCase())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -72,7 +72,7 @@ public class CreditSettingController {
     @PostMapping("/ai-chat/reset-daily/{userId}")
     public ResponseEntity<Void> resetDailyCount(@PathVariable UUID userId,
                                                 @JwtUser JwtClaims claims) {
-        if (!"ADMIN".equals(claims.getRole())) {
+        if (!"ADMIN".equals(claims.getRole().toUpperCase())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         // call AIChatCreditService
