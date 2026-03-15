@@ -38,8 +38,10 @@ public class JwtHeaderFilter extends OncePerRequestFilter {
                     JsonNode jsonNode = objectMapper.readTree(payload);
                     if (jsonNode.has("sub")) {
                         String userIdStr = jsonNode.get("sub").asText();
+                        String role = jsonNode.has("role") ? jsonNode.get("role").asText() : null;
                         JwtClaims claims = JwtClaims.builder()
                                 .userId(UUID.fromString(userIdStr))
+                                .role(role)
                                 .build();
                         request.setAttribute("jwtClaims", claims);
                         log.debug("Extracted User ID from JWT and set as request attribute: {}", userIdStr);

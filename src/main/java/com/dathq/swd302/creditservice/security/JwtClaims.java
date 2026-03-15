@@ -15,5 +15,5 @@ public class JwtClaims {
     private UUID userId;
     // Add additional claims here in the future:
     // private String email;
-    // private List<String> roles;
+    private String role;
 }
