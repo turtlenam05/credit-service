@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/admin/credit-settings")
+@RequestMapping("/api/v1/admin/credit-settings")
 @RequiredArgsConstructor
 @Slf4j
 public class CreditSettingController {
