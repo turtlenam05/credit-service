@@ -97,7 +97,7 @@ public class AdminAnalyticsServiceImpl implements IAdminAnalyticsService {
     public List<CreditTransaction> getTransactions(AdminTransactionFilter filter) {
         validateTransactionFilter(filter);
 
-        Specification<CreditTransaction> specification = Specification.where(null);
+        Specification<CreditTransaction> specification = (root, query, cb) -> cb.conjunction();
 
         if (filter.month() != null && filter.year() != null) {
             YearMonth yearMonth = YearMonth.of(filter.year(), filter.month());
