@@ -16,8 +16,8 @@ public interface IAdminAnalyticsService {
     /** Credit consumption breakdown by transaction type for a specific month/year. */
     AdminCreditUsageDTO getCreditUsage(int month, int year);
 
-    /** All transactions recorded in a given month/year (detailed ledger view). */
-    List<CreditTransaction> getTransactionsByMonth(int month, int year);
+    /** Filtered transaction ledger for admin audit and investigation. */
+    List<CreditTransaction> getTransactions(AdminTransactionFilter filter);
 
     /** Top N users ranked by total credits spent (all-time). */
     List<AdminUserDTO> getTopSpenders(int limit);

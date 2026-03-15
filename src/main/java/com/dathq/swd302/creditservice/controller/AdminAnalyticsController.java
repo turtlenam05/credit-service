@@ -2,16 +2,22 @@ package com.dathq.swd302.creditservice.controller;
 
 import com.dathq.swd302.creditservice.dto.*;
 import com.dathq.swd302.creditservice.entity.CreditTransaction;
+import com.dathq.swd302.creditservice.entity.TransactionStatus;
+import com.dathq.swd302.creditservice.entity.TransactionType;
 import com.dathq.swd302.creditservice.security.JwtClaims;
 import com.dathq.swd302.creditservice.security.JwtUser;
 import com.dathq.swd302.creditservice.service.IAdminAnalyticsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/analytics")
@@ -64,16 +70,43 @@ public class AdminAnalyticsController {
     // ─── Transactions ledger ───────────────────────────────────────────────────
 
     /**
-     * Full transaction ledger for a given month/year. Useful for auditing
-     * or exporting raw data.
+     * Filterable transaction ledger for auditing and investigation.
+     * Supports filtering by month/year, users, type, status, reference fields,
+     * amount range, date range, and sorting by amount/date/status/type/user.
      */
     @GetMapping("/transactions")
     public ResponseEntity<List<CreditTransaction>> getTransactions(
             @JwtUser JwtClaims claims,
-            @RequestParam int month,
-            @RequestParam int year) {
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) List<UUID> userIds,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) TransactionStatus status,
+            @RequestParam(required = false) String referenceType,
+            @RequestParam(required = false) String referenceId,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+            @RequestParam(defaultValue = "date") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
         requireAdmin(claims);
-        return ResponseEntity.ok(adminAnalyticsService.getTransactionsByMonth(month, year));
+        AdminTransactionFilter filter = new AdminTransactionFilter(
+                month,
+                year,
+                userIds,
+                type,
+                status,
+                referenceType,
+                referenceId,
+                minAmount,
+                maxAmount,
+                fromDate,
+                toDate,
+                sortBy,
+                sortDir
+        );
+        return ResponseEntity.ok(adminAnalyticsService.getTransactions(filter));
     }
 
     // ─── User analytics ────────────────────────────────────────────────────────

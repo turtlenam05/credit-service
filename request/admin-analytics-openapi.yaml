@@ -1,0 +1,702 @@
+openapi: 3.0.3
+info:
+  title: Credit Service Admin Analytics API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for administrator analytics endpoints only.
+    All endpoints require a valid Bearer JWT and the decoded JWT payload must contain
+    a role claim equal to ADMIN.
+servers:
+  - url: http://localhost:8086
+    description: Local ENV
+  - url: https://api.estate.maik.io.vn/credit
+    description: PROD ENV
+security:
+  - bearerAuth: []
+tags:
+  - name: Admin Analytics
+    description: Analytics and reporting endpoints restricted to administrator users.
+paths:
+  /api/v1/admin/analytics/overview:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Get platform overview
+      description: Returns a high-level snapshot of wallets, transactions, all-time revenue, and pending admin queues. Requires JWT role ADMIN.
+      operationId: getAdminAnalyticsOverview
+      responses:
+        '200':
+          description: Platform overview returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOverviewDTO'
+              examples:
+                default:
+                  value:
+                    totalWallets: 1240
+                    totalTransactions: 18392
+                    totalRevenueAllTime: 540000.00
+                    totalRefundsAllTime: 12000.00
+                    netRevenueAllTime: 528000.00
+                    pendingRefundRequests: 4
+                    pendingReconciliations: 1
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/analytics/revenue:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Get monthly revenue analytics
+      description: Returns revenue, refunds, net revenue, transaction count, and month-over-month growth for the selected month and year. Requires JWT role ADMIN.
+      operationId: getAdminRevenueStats
+      parameters:
+        - $ref: '#/components/parameters/MonthParam'
+        - $ref: '#/components/parameters/YearParam'
+      responses:
+        '200':
+          description: Revenue analytics returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminRevenueDTO'
+              examples:
+                default:
+                  value:
+                    month: 3
+                    year: 2026
+                    totalRevenue: 95000.00
+                    totalRefunds: 2000.00
+                    netRevenue: 93000.00
+                    transactionCount: 642
+                    aiChatDeductions: 15000.00
+                    postCharges: 23000.00
+                    listingFees: 0.00
+                    prevMonthRevenue: 81000.00
+                    revenueGrowthPercent: 17.2839
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/analytics/credit-usage:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Get monthly credit usage analytics
+      description: Returns summed amounts and counts by transaction type for the selected month and year. Requires JWT role ADMIN.
+      operationId: getAdminCreditUsage
+      parameters:
+        - $ref: '#/components/parameters/MonthParam'
+        - $ref: '#/components/parameters/YearParam'
+      responses:
+        '200':
+          description: Credit usage analytics returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCreditUsageDTO'
+              examples:
+                default:
+                  value:
+                    month: 3
+                    year: 2026
+                    totalPurchases: 95000.00
+                    totalAiChatDeductions: 15000.00
+                    totalPostCharges: 23000.00
+                    totalListingFees: 0.00
+                    totalRefunds: 2000.00
+                    purchaseCount: 120
+                    aiChatCount: 440
+                    postChargeCount: 82
+                    listingFeeCount: 0
+                    refundCount: 5
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/analytics/transactions:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Get filtered transaction ledger
+      description: Returns the transaction ledger with optional filters for users, type, status, reference data, amount range, date range, and server-side sorting. Requires JWT role ADMIN.
+      operationId: getAdminTransactions
+      parameters:
+        - name: month
+          in: query
+          required: false
+          description: Calendar month from 1 to 12. Must be provided together with year.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 3
+        - name: year
+          in: query
+          required: false
+          description: Four-digit calendar year. Must be provided together with month.
+          schema:
+            type: integer
+            minimum: 2000
+            example: 2026
+        - name: userIds
+          in: query
+          required: false
+          description: Filter by one or more user IDs. Can be sent as repeated query params.
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+          style: form
+          explode: true
+        - name: type
+          in: query
+          required: false
+          description: Filter by transaction type.
+          schema:
+            $ref: '#/components/schemas/TransactionType'
+        - name: status
+          in: query
+          required: false
+          description: Filter by transaction status.
+          schema:
+            $ref: '#/components/schemas/TransactionStatus'
+        - name: referenceType
+          in: query
+          required: false
+          description: Case-insensitive partial match on referenceType.
+          schema:
+            type: string
+            example: PAYOS
+        - name: referenceId
+          in: query
+          required: false
+          description: Case-insensitive partial match on referenceId.
+          schema:
+            type: string
+            example: order-1700000001
+        - name: minAmount
+          in: query
+          required: false
+          description: Minimum transaction amount, inclusive.
+          schema:
+            type: number
+            format: double
+            example: 1000
+        - name: maxAmount
+          in: query
+          required: false
+          description: Maximum transaction amount, inclusive.
+          schema:
+            type: number
+            format: double
+            example: 50000
+        - name: fromDate
+          in: query
+          required: false
+          description: Start of createdAt date-time range, inclusive, in ISO-8601 format.
+          schema:
+            type: string
+            format: date-time
+            example: 2026-03-01T00:00:00
+        - name: toDate
+          in: query
+          required: false
+          description: End of createdAt date-time range, inclusive, in ISO-8601 format.
+          schema:
+            type: string
+            format: date-time
+            example: 2026-03-31T23:59:59
+        - name: sortBy
+          in: query
+          required: false
+          description: Sort field.
+          schema:
+            type: string
+            enum:
+              - amount
+              - date
+              - status
+              - type
+              - userId
+              - referenceType
+              - referenceId
+            default: date
+        - name: sortDir
+          in: query
+          required: false
+          description: Sort direction.
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+      responses:
+        '200':
+          description: Transaction ledger returned successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CreditTransaction'
+              examples:
+                default:
+                  value:
+                    - transactionId: 101
+                      wallet:
+                        walletId: 11
+                        userId: 7e2b1b8e-3547-48af-9040-dfdcb7b7f76a
+                        balance: 25000.00
+                        reservedBalance: 0.00
+                        status: ACTIVE
+                        totalSpent: 12000.00
+                        createdAt: 2026-03-01T09:15:00
+                        updatedAt: 2026-03-14T16:40:00
+                      amount: 5000.00
+                      type: PURCHASE
+                      referenceType: PAYOS_RECHARGE
+                      referenceId: order-1700000001
+                      status: SUCCESS
+                      notes: Top up from PayOS
+                      createdAt: 2026-03-14T16:39:00
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/analytics/users/top-spenders:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Get top spenders
+      description: Returns users ranked by totalSpent in descending order. The limit query parameter defaults to 10 and is capped to 100 server-side. Requires JWT role ADMIN.
+      operationId: getAdminTopSpenders
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of users to return. Defaults to 10. Effective max is 100.
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: Top spender list returned successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUserDTO'
+              examples:
+                default:
+                  value:
+                    - userId: 7e2b1b8e-3547-48af-9040-dfdcb7b7f76a
+                      balance: 25000.00
+                      reservedBalance: 0.00
+                      totalSpent: 12000.00
+                      status: ACTIVE
+                      createdAt: 2026-01-10T10:00:00
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/admin/analytics/wallets:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Get wallet statistics
+      description: Returns aggregate wallet statistics across the system. Requires JWT role ADMIN.
+      operationId: getAdminWalletStats
+      responses:
+        '200':
+          description: Wallet statistics returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminWalletStatsDTO'
+              examples:
+                default:
+                  value:
+                    totalWallets: 1240
+                    totalBalanceInSystem: 810000.00
+                    totalReservedBalance: 5000.00
+                    averageBalance: 653.23
+                    zeroBalanceWallets: 410
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer JWT. Access is allowed only when the decoded JWT contains role=ADMIN.
+
+  parameters:
+    MonthParam:
+      name: month
+      in: query
+      required: true
+      description: Calendar month from 1 to 12.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+        example: 3
+    YearParam:
+      name: year
+      in: query
+      required: true
+      description: Four-digit calendar year.
+      schema:
+        type: integer
+        minimum: 2000
+        example: 2026
+
+  responses:
+    BadRequestError:
+      description: Invalid query parameter values or malformed request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                status: 400
+                message: Invalid request
+                timestamp: 2026-03-15T10:30:00
+    UnauthorizedError:
+      description: Missing or invalid Bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                status: 401
+                message: Unauthorized
+                timestamp: 2026-03-15T10:30:00
+    ForbiddenError:
+      description: Authenticated user is not an administrator.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                status: 403
+                message: Admin access required
+                timestamp: 2026-03-15T10:30:00
+
+  schemas:
+    AdminOverviewDTO:
+      type: object
+      properties:
+        totalWallets:
+          type: integer
+          format: int64
+        totalTransactions:
+          type: integer
+          format: int64
+        totalRevenueAllTime:
+          type: number
+          format: double
+        totalRefundsAllTime:
+          type: number
+          format: double
+        netRevenueAllTime:
+          type: number
+          format: double
+        pendingRefundRequests:
+          type: integer
+          format: int64
+        pendingReconciliations:
+          type: integer
+          format: int64
+      required:
+        - totalWallets
+        - totalTransactions
+        - totalRevenueAllTime
+        - totalRefundsAllTime
+        - netRevenueAllTime
+        - pendingRefundRequests
+        - pendingReconciliations
+
+    AdminRevenueDTO:
+      type: object
+      properties:
+        month:
+          type: integer
+          format: int32
+        year:
+          type: integer
+          format: int32
+        totalRevenue:
+          type: number
+          format: double
+        totalRefunds:
+          type: number
+          format: double
+        netRevenue:
+          type: number
+          format: double
+        transactionCount:
+          type: integer
+          format: int32
+        aiChatDeductions:
+          type: number
+          format: double
+        postCharges:
+          type: number
+          format: double
+        listingFees:
+          type: number
+          format: double
+        prevMonthRevenue:
+          type: number
+          format: double
+        revenueGrowthPercent:
+          type: number
+          format: double
+      required:
+        - month
+        - year
+        - totalRevenue
+        - totalRefunds
+        - netRevenue
+        - transactionCount
+        - aiChatDeductions
+        - postCharges
+        - listingFees
+        - prevMonthRevenue
+        - revenueGrowthPercent
+
+    AdminCreditUsageDTO:
+      type: object
+      properties:
+        month:
+          type: integer
+          format: int32
+        year:
+          type: integer
+          format: int32
+        totalPurchases:
+          type: number
+          format: double
+        totalAiChatDeductions:
+          type: number
+          format: double
+        totalPostCharges:
+          type: number
+          format: double
+        totalListingFees:
+          type: number
+          format: double
+        totalRefunds:
+          type: number
+          format: double
+        purchaseCount:
+          type: integer
+          format: int64
+        aiChatCount:
+          type: integer
+          format: int64
+        postChargeCount:
+          type: integer
+          format: int64
+        listingFeeCount:
+          type: integer
+          format: int64
+        refundCount:
+          type: integer
+          format: int64
+      required:
+        - month
+        - year
+        - totalPurchases
+        - totalAiChatDeductions
+        - totalPostCharges
+        - totalListingFees
+        - totalRefunds
+        - purchaseCount
+        - aiChatCount
+        - postChargeCount
+        - listingFeeCount
+        - refundCount
+
+    AdminWalletStatsDTO:
+      type: object
+      properties:
+        totalWallets:
+          type: integer
+          format: int64
+        totalBalanceInSystem:
+          type: number
+          format: double
+        totalReservedBalance:
+          type: number
+          format: double
+        averageBalance:
+          type: number
+          format: double
+        zeroBalanceWallets:
+          type: integer
+          format: int64
+      required:
+        - totalWallets
+        - totalBalanceInSystem
+        - totalReservedBalance
+        - averageBalance
+        - zeroBalanceWallets
+
+    AdminUserDTO:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        balance:
+          type: number
+          format: double
+        reservedBalance:
+          type: number
+          format: double
+        totalSpent:
+          type: number
+          format: double
+        status:
+          type: string
+          example: ACTIVE
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - userId
+        - balance
+        - reservedBalance
+        - totalSpent
+        - status
+        - createdAt
+
+    CreditTransaction:
+      type: object
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+        wallet:
+          $ref: '#/components/schemas/UserWallet'
+        amount:
+          type: number
+          format: double
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        referenceType:
+          type: string
+        referenceId:
+          type: string
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - transactionId
+        - wallet
+        - amount
+        - type
+        - status
+        - createdAt
+
+    UserWallet:
+      type: object
+      properties:
+        walletId:
+          type: integer
+          format: int64
+        userId:
+          type: string
+          format: uuid
+        balance:
+          type: number
+          format: double
+        reservedBalance:
+          type: number
+          format: double
+        status:
+          type: string
+          example: ACTIVE
+        totalSpent:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - walletId
+        - userId
+        - balance
+        - reservedBalance
+
+    TransactionType:
+      type: string
+      enum:
+        - PURCHASE
+        - AI_CHAT
+        - LISTING_FEE
+        - REFUND
+        - POST_CHARGE
+
+    TransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - SUCCESS
+        - FAILED
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int32
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - status
+        - message
+        - timestamp
