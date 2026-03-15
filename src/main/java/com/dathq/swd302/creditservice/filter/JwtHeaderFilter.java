@@ -38,13 +38,29 @@ public class JwtHeaderFilter extends OncePerRequestFilter {
                     JsonNode jsonNode = objectMapper.readTree(payload);
                     if (jsonNode.has("sub")) {
                         String userIdStr = jsonNode.get("sub").asText();
-                        String role = jsonNode.has("role") ? jsonNode.get("role").asText() : null;
+
+                        String role = null;
+                        if (jsonNode.has("role") && !jsonNode.get("role").isNull()) {
+                            role = jsonNode.get("role").asText();
+                        } else if (jsonNode.has("roles") && jsonNode.get("roles").isArray()) {
+                            JsonNode roles = jsonNode.get("roles");
+                            for (JsonNode r : roles) {
+                                if ("ADMIN".equalsIgnoreCase(r.asText())) {
+                                    role = r.asText().toUpperCase();
+                                    break;
+                                }
+                            }
+                            if (role == null && roles.size() > 0) {
+                                role = roles.get(0).asText();
+                            }
+                        }
+
                         JwtClaims claims = JwtClaims.builder()
                                 .userId(UUID.fromString(userIdStr))
                                 .role(role)
                                 .build();
                         request.setAttribute("jwtClaims", claims);
-                        log.debug("Extracted User ID from JWT and set as request attribute: {}", userIdStr);
+                        log.debug("Extracted User ID {} with role {} from JWT", userIdStr, role);
                     }
                 }
             } catch (Exception e) {

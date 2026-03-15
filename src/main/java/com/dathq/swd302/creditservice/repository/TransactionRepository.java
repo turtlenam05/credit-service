@@ -58,4 +58,21 @@ public interface TransactionRepository extends JpaRepository<CreditTransaction, 
     @Query("SELECT COUNT(t) FROM CreditTransaction t " +
             "WHERE MONTH(t.createdAt) = :month AND YEAR(t.createdAt) = :year")
     int countByMonthAndYear(@Param("month") int month, @Param("year") int year);
+
+    // ─── Admin analytics ──────────────────────────────────────────────────────
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CreditTransaction t WHERE t.type = :type")
+    BigDecimal sumAmountByType(@Param("type") TransactionType type);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CreditTransaction t " +
+            "WHERE t.type = :type AND MONTH(t.createdAt) = :month AND YEAR(t.createdAt) = :year")
+    BigDecimal sumAmountByTypeAndMonth(@Param("type") TransactionType type,
+                                       @Param("month") int month,
+                                       @Param("year") int year);
+
+    @Query("SELECT COUNT(t) FROM CreditTransaction t " +
+            "WHERE t.type = :type AND MONTH(t.createdAt) = :month AND YEAR(t.createdAt) = :year")
+    long countByTypeAndMonth(@Param("type") TransactionType type,
+                              @Param("month") int month,
+                              @Param("year") int year);
 }

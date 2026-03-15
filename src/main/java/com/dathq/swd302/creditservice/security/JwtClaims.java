@@ -13,7 +13,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class JwtClaims {
     private UUID userId;
-    // Add additional claims here in the future:
-    // private String email;
     private String role;
+
 }
