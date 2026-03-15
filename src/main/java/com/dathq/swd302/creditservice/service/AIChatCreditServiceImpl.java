@@ -24,7 +24,7 @@ public class AIChatCreditServiceImpl implements IAIChatCreditService{
     private final ICreditSettingService settingService;
     private final RedisTemplate<String, String> redisTemplate;
     private final DailyUsageRepository dailyUsageRepository;
-    private static final int FREE_MESSAGE_LIMIT = 30;
+
 
     @Override
     public boolean canSendFreeMessage(UUID userId) {
@@ -81,7 +81,7 @@ public class AIChatCreditServiceImpl implements IAIChatCreditService{
     @Override
     public ChatUsageDTO getUsage(UUID userId) {
         long userIdLong = userId.getLeastSignificantBits();
-
+        int limit = settingService.getValue(AI_CHAT_FREE_LIMIT);
         int liveCount = creditService.getDailyMessageCount(userId);
 
         // If Redis key has already expired (e.g. just after midnight before any
@@ -93,15 +93,15 @@ public class AIChatCreditServiceImpl implements IAIChatCreditService{
                     .orElse(0);
         }
 
-        int freeRemaining = Math.max(0, FREE_MESSAGE_LIMIT - liveCount);
+        int freeRemaining = Math.max(0, limit - liveCount);
 
         return ChatUsageDTO.builder()
                 .userId(userIdLong)
                 .usageDate(LocalDate.now())
                 .messageCountToday(liveCount)
-                .freeLimit(FREE_MESSAGE_LIMIT)
+                .freeLimit(limit)
                 .freeRemaining(freeRemaining)
-                .withinFreeLimit(liveCount < FREE_MESSAGE_LIMIT)
+                .withinFreeLimit(liveCount < limit)
                 .build();
     }
 }
