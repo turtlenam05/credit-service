@@ -63,12 +63,21 @@ public class CreditService implements ICreditService {
     // ─── Wallet ───────────────────────────────────────────────────────────────
 
     @Override
+    @Transactional
     public UserWallet getWallet(UUID userId) {
         return walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new WalletNotFoundException(userId));
+                .orElseGet(() -> walletRepository.save(
+                        UserWallet.builder()
+                                .userId(userId)
+                                .balance(BigDecimal.ZERO)
+                                .reservedBalance(BigDecimal.ZERO)
+                                .totalSpent(BigDecimal.ZERO)
+                                .status("ACTIVE")
+                                .build()
+                ));
     }
-
     @Override
+    @Transactional
     public UserWallet createWallet(UUID userId) {
         return walletRepository.findByUserId(userId)
                 .orElseGet(() -> walletRepository.save(
